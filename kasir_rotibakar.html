@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catatan Pendapatan Roti Bakar FIRAFLI</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f9fa;
+            margin: 0;
+            padding: 15px;
+            color: #333;
+        }
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h2, h3 {
+            text-align: center;
+            color: #d35400;
+            margin-top: 0;
+        }
+        .total-box {
+            background: #e67e22;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .total-uang {
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        /* Tambahan style untuk total biji */
+        .total-biji {
+            font-size: 14px;
+            opacity: 0.9;
+            border-top: 1px solid rgba(255,255,255,0.3);
+            padding-top: 8px;
+            margin-top: 5px;
+        }
+        .price-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .btn-harga {
+            background-color: #f39c12;
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-harga:active {
+            transform: scale(0.95);
+            background-color: #e67e22;
+        }
+        .history {
+            border-top: 2px solid #eee;
+            padding-top: 15px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 15px;
+        }
+        .detail-left {
+            display: flex;
+            flex-direction: column;
+        }
+        .small-time {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 2px;
+        }
+        .detail-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .badge-biji {
+            background-color: #e8f6f3;
+            color: #16a085;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .btn-reset {
+            width: 100%;
+            background-color: #c0392b;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🍞 Roti Bakar "FIRAFLI"</h2>
+    
+    <div class="total-box">
+        <div class="total-uang">Total: Rp <span id="total-pendapatan">0</span></div>
+        <!-- Tambahan tampilan total biji -->
+        <div class="total-biji">Total Terjual: <strong id="total-biji">0</strong> biji</div>
+    </div>
+
+    <h3>Klik Harga Terjual:</h3>
+    <div class="price-grid" id="grid-container">
+        <!-- Tombol dibuat otomatis oleh JavaScript -->
+    </div>
+
+    <h3>Riwayat Penjualan Hari Ini:</h3>
+    <div class="history" id="riwayat-list">
+        <!-- Riwayat akan muncul di sini -->
+    </div>
+
+    <button class="btn-reset" onclick="resetData()">Kosongkan / Mulai Hari Baru</button>
+</div>
+
+<script>
+    const hargaList = [10000, 13000, 14000, 15000, 16000, 17000, 18000, 19000, 20000];
+
+    let total = 0;
+    let dataPenjualan = {}; 
+
+    function ambilDataAwal() {
+        const savedTotal = localStorage.getItem('totalRotiFira');
+        const savedData = localStorage.getItem('dataRotiFira');
+
+        if (savedTotal) total = parseInt(savedTotal);
+        if (savedData) {
+            dataPenjualan = JSON.parse(savedData);
+        } else {
+            hargaList.forEach(h => dataPenjualan[h] = { jumlah: 0, waktu: '-' });
+        }
+    }
+
+    function buatTombol() {
+        const container = document.getElementById('grid-container');
+        container.innerHTML = '';
+        hargaList.forEach(harga => {
+            const btn = document.createElement('button');
+            btn.className = 'btn-harga';
+            btn.innerText = '+ Rp ' + harga.toLocaleString('id-ID');
+            if (harga === 20000) btn.style.gridColumn = "span 2";
+            btn.onclick = () => tambahPendapatan(harga);
+            container.appendChild(btn);
+        });
+    }
+
+    function tambahPendapatan(harga) {
+        total += harga;
+        
+        let sekarang = new Date();
+        let jam = sekarang.getHours().toString().padStart(2, '0');
+        let menit = sekarang.getMinutes().toString().padStart(2, '0');
+        let waktuString = jam + ':' + menit;
+
+        dataPenjualan[harga] = {
+            jumlah: (dataPenjualan[harga]?.jumlah || 0) + 1,
+            waktu: waktuString
+        };
+
+        simpanData();
+        updateTampilan();
+    }
+
+    function updateTampilan() {
+        document.getElementById('total-pendapatan').innerText = total.toLocaleString('id-ID');
+        
+        // Hitung total semua biji yang terjual
+        let hitungTotalBiji = 0;
+        hargaList.forEach(harga => {
+            hitungTotalBiji += (dataPenjualan[harga]?.jumlah || 0);
+        });
+        // Tampilkan total biji
+        document.getElementById('total-biji').innerText = hitungTotalBiji;
+        
+        const listContainer = document.getElementById('riwayat-list');
+        let htmlRiwayat = '';
+
+        hargaList.forEach(harga => {
+            const item = dataPenjualan[harga];
+            
+            if (item && item.jumlah > 0) {
+                htmlRiwayat += `
+                    <div class="history-item">
+                        <div class="detail-left">
+                            <strong>Rp ${harga.toLocaleString('id-ID')}</strong>
+                            <span class="small-time">Terjual: ${item.waktu}</span>
+                        </div>
+                        <div class="detail-right">
+                            <span class="badge-biji">${item.jumlah} biji</span>
+                            <span>Rp ${(harga * item.jumlah).toLocaleString('id-ID')}</span>
+                        </div>
+                    </div>`;
+            }
+        });
+
+        if (htmlRiwayat === '') {
+            htmlRiwayat = '<p style="text-align:center; color:#999;">Belum ada penjualan hari ini.</p>';
+        }
+
+        listContainer.innerHTML = htmlRiwayat;
+    }
+
+    function simpanData() {
+        localStorage.setItem('totalRotiFira', total);
+        localStorage.setItem('dataRotiFira', JSON.stringify(dataPenjualan));
+    }
+
+    function resetData() {
+        if (confirm("Apakah Anda yakin ingin menghapus semua catatan pendapatan hari ini?")) {
+            total = 0;
+            hargaList.forEach(h => dataPenjualan[h] = { jumlah: 0, waktu: '-' });
+            
+            localStorage.removeItem('totalRotiFira');
+            localStorage.removeItem('dataRotiFira');
+            
+            updateTampilan();
+        }
+    }
+
+    ambilDataAwal();
+    buatTombol();
+    updateTampilan();
+</script>
+
+</body>
+</html>
